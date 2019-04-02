@@ -9,7 +9,7 @@ setup(
     author='Philippe Gris',
     author_email='philippe.gris@clermont.in2p3.fr',
     license='BSD',
-    packages=['stackers'],
+    packages=['sn_stackers'],
     python_requires='>=3.5',
     zip_safe=False
 )
