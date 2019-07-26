@@ -10,11 +10,12 @@ class CoaddStacker(BaseStacker):
     Class to coadd observations per night
     """
 
-    colsAdded = ['coadd']
+    colsAdded = ['sn_coadd']
 
-    def __init__(self, RaCol='fieldRA', DecCol='fieldDec', m5Col='fiveSigmaDepth', nightcol='night', filterCol='filter', nightCol='night', numExposuresCol='numExposures', visitTimeCol='visitTime', visitExposureTimeCol='visitExposureTime'):
-        self.colsReq = [RaCol, DecCol, m5Col, filterCol, nightCol,
+    def __init__(self, mjdCol='observationStartMJD',RaCol='fieldRA', DecCol='fieldDec', m5Col='fiveSigmaDepth', nightCol='night', filterCol='filter', numExposuresCol='numExposures', visitTimeCol='visitTime', visitExposureTimeCol='visitExposureTime'):
+        self.colsReq = [mjdCol,RaCol, DecCol, m5Col, filterCol, nightCol,
                         numExposuresCol, visitTimeCol, visitExposureTimeCol]
+        self.mjdCol = mjdCol
         self.RaCol = RaCol
         self.DecCol = DecCol
         self.nightCol = nightCol
@@ -25,7 +26,7 @@ class CoaddStacker(BaseStacker):
         self.visitExposureTimeCol = visitExposureTimeCol
 
         self.units = ['int']
-
+        
     def _run(self, simData, cols_present=False):
         """Main run method
 
@@ -48,6 +49,7 @@ class CoaddStacker(BaseStacker):
         visitExposureTime: visit exposure time (sum per night)
 
         """
+        
         if cols_present:
             # Column already present in data; assume it is correct and does not need recalculating.
             return simData
@@ -89,10 +91,13 @@ class CoaddStacker(BaseStacker):
         """
 
         r = []
-
+       
         for colname in self.dtype.names:
+            if colname in ['note']:
+                r.append(np.unique(tab[colname])[0])
+                continue
             if colname not in [self.m5Col, self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol, self.filterCol]:
-                if colname == 'coadd':
+                if colname == 'sn_coadd':
                     r.append(1)
                 else:
                     r.append(np.median(tab[colname]))
