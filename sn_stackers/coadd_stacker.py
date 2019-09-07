@@ -53,7 +53,8 @@ class CoaddStacker(BaseStacker):
         visitExposureTime: visit exposure time (sum per night)
 
         """
-        
+        if 'note' in simData.dtype.names:
+            simData = rf.drop_fields(simData,'note')
         if cols_present:
             # Column already present in data; assume it is correct and does not need recalculating.
             return simData
