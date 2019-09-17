@@ -4,6 +4,7 @@ import numpy.lib.recfunctions as rf
 import multiprocessing
 from astropy.table import Table, Column
 import pandas as pd
+import time
 
 __all__ = ['CoaddStacker']
 
@@ -66,17 +67,59 @@ class CoaddStacker(BaseStacker):
         df = pd.DataFrame(np.copy(simData))
 
         #print(df)
+        time_ref = time.time()
+
         keygroup = [self.filterCol,self.nightCol]
+        keysums =  [self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol]
+        keymeans = [self.mjdCol, self.RaCol, self.DecCol, self.m5Col]
+
+        
+        coadd_df = df.groupby(keygroup).agg({self.numExposuresCol: ['sum'],
+                                             self.visitTimeCol: ['sum'],
+                                             self.visitExposureTimeCol: ['sum'],
+                                             self.mjdCol: ['mean'],
+                                             self.RaCol: ['mean'],
+                                             self.DecCol: ['mean'],
+                                             self.m5Col: ['mean'],
+                                             'pixRa': ['mean'],
+                                             'pixDec': ['mean'],
+                                             'healpixID': ['mean'],
+                                             'season': ['mean']}).reset_index()
+        coadd_df.columns = [self.filterCol,self.nightCol,self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol,self.mjdCol, self.RaCol, self.DecCol, self.m5Col,'pixRa','pixDec','healpixID','season'] 
+
+        #groupa = df.groupby(keygroup)[keysums].sum()[keymeans].mean()
+
+
+        coadd_df.loc[:,self.m5Col] += 1.25*np.log10(coadd_df[self.visitExposureTimeCol]/30.)  
+        #print(coadd_df.sort_values(by=[self.nightCol]))
+
+
+        return coadd_df.to_records(index=False)
+
+
         groups = df.groupby(keygroup)
+        print(groups.apply(lambda x:self.m5_coadd_grp(x)).reset_index()[[self.nightCol,self.filterCol,self.m5Col]])
+
+
+        print(test)
+        
+        groups = df.groupby(keygroup)
+        
+        sums = groups.sum() 
+        means = groups.sum() 
+
+        self.nightCol = nightCol
+        
         groups_m5 = groups.apply(lambda x: self.m5_coadd_grp(x))
-        #print('coadded m5',groups_m5)
+        print('coadded m5',time.time()-time_ref)
 
+        
         groups = groups_m5.groupby(keygroup)
-
+        time_ref = time.time()
         means = groups.mean()
         med = groups.median()
         add = groups.sum()
-
+        print('calc',time.time()-time_ref)
         keys = np.array(list(groups.groups.keys()))
         #print('hello',keys)
 
@@ -98,93 +141,8 @@ class CoaddStacker(BaseStacker):
 
         
         return np.array(tab)
-        #print('here',tab)
-        #print('here',tab.dtype)
 
-        #print(test)
         
-        tab = Table(simData)
-
-        groups = tab.group_by([self.filterCol,self.nightCol])
-
-        indices = groups.groups.indices
-        ngroups = len(indices)-1
-        delta = ngroups
-        if self.nproc > 1:
-            delta = int(delta/(self.nproc))
-
-        else:
-            r = self.fillLoop(groups,0,ngroups)
-            myarray = np.array(r, dtype=self.dtype)
-            return myarray
-
-
-        batch = range(0, ngroups, delta)
-
-        if ngroups not in batch:
-            batch = np.append(batch, ngroups)
-
-        batch = batch.tolist()
-        if batch[-1]-batch[-2]<= 2:
-            batch.remove(batch[-2])
-
-        #print('stacking',batch)
-        result_queue = multiprocessing.Queue()
-
-        r = []
-        for j in range(len(batch)-1):
-            ida = batch[j]
-            idb = batch[j+1]
-            p = multiprocessing.Process(name='Subprocess-'+str(j), target=self.fillLoop, args=(
-                groups,batch[j],batch[j+1],j, result_queue))
-            p.start()
-
-
-        resultdict = {}
-        for i in range(len(batch)-1):
-            resultdict.update(result_queue.get())
-
-        for p in multiprocessing.active_children():
-            p.join()
-
-
-        for key, vals in resultdict.items():
-            r += vals
-
-        """
-        for ra, dec, band in np.unique(simData[[self.RaCol, self.DecCol, self.filterCol]]):
-            idx = np.abs(simData[self.RaCol]-ra) < 1.e-5
-            idx &= np.abs(simData[self.DecCol]-dec) < 1.e-5
-            idx &= simData[self.filterCol] == band
-
-            sel = simData[idx]
-            for night in np.unique(sel[self.nightCol]):
-                idxb = sel[self.nightCol] == night
-                r.append(tuple(self.Fill(sel[idxb])))
-
-        # print(r)
-        """
-        #print(r)
-        myarray = np.array(r, dtype=self.dtype)
-        return myarray
-
-    def fillLoop(self,group, ida, idb,j=0, output_q=None):
-
-        r = []
-
-       
-        for ind in range(ida,idb,1):
-            
-            grp = group.groups[ind]
-            
-            r.append(tuple(self.fill(np.copy(grp))))
-            
-        if output_q is not None:
-            return output_q.put({j: r})
-        else:
-            return r
-
-
     def fill(self, tab):
         """
         Field values estimation per night
