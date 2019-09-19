@@ -66,14 +66,16 @@ class CoaddStacker(BaseStacker):
         #print(type(simData))
         df = pd.DataFrame(np.copy(simData))
 
+        
         #print(df)
-        time_ref = time.time()
+        #time_ref = time.time()
 
         keygroup = [self.filterCol,self.nightCol]
         keysums =  [self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol]
         keymeans = [self.mjdCol, self.RaCol, self.DecCol, self.m5Col]
 
-        
+        df.sort_values(by=[self.filterCol,self.nightCol], ascending=[True, True], inplace=True)
+        #print('before',df[keygroup+keysums+keymeans])
         coadd_df = df.groupby(keygroup).agg({self.numExposuresCol: ['sum'],
                                              self.visitTimeCol: ['sum'],
                                              self.visitExposureTimeCol: ['sum'],
@@ -93,54 +95,10 @@ class CoaddStacker(BaseStacker):
         coadd_df.loc[:,self.m5Col] += 1.25*np.log10(coadd_df[self.visitExposureTimeCol]/30.)  
         #print(coadd_df.sort_values(by=[self.nightCol]))
 
-
+        coadd_df.sort_values(by=[self.filterCol,self.nightCol], ascending=[True, True], inplace=True)
+        #print('coadd',coadd_df)
+    
         return coadd_df.to_records(index=False)
-
-
-        groups = df.groupby(keygroup)
-        print(groups.apply(lambda x:self.m5_coadd_grp(x)).reset_index()[[self.nightCol,self.filterCol,self.m5Col]])
-
-
-        print(test)
-        
-        groups = df.groupby(keygroup)
-        
-        sums = groups.sum() 
-        means = groups.sum() 
-
-        self.nightCol = nightCol
-        
-        groups_m5 = groups.apply(lambda x: self.m5_coadd_grp(x))
-        print('coadded m5',time.time()-time_ref)
-
-        
-        groups = groups_m5.groupby(keygroup)
-        time_ref = time.time()
-        means = groups.mean()
-        med = groups.median()
-        add = groups.sum()
-        print('calc',time.time()-time_ref)
-        keys = np.array(list(groups.groups.keys()))
-        #print('hello',keys)
-
-        tab = Table()
-        r = []
-        for colname in self.dtype.names:
-            if colname not in [self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol] and colname not in keygroup:
-                if colname == 'sn_coadd':
-                    tab.add_column(Column([1]*len(means),name='sn_coadd'))
-                else:
-                    tab.add_column(Column(med[colname],name=colname))
-            #if colname == self.m5Col:
-            #    r.append(self.m5_coadd(np.copy(tab[self.m5Col])))
-            if colname in [self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol]:
-                tab.add_column(Column(add[colname],name=colname))
-            if colname in keygroup:
-                #print(colname,keys[:,keygroup.index(colname)])
-                tab.add_column(Column(keys[:,keygroup.index(colname)],name=colname))
-
-        
-        return np.array(tab)
 
         
     def fill(self, tab):
