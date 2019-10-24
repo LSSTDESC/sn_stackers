@@ -61,6 +61,10 @@ class CoaddStacker(BaseStacker):
             return simData
         self.dtype = simData.dtype
         
+
+        if self.visitTimeCol not in simData.dtype.names:
+            simData = rf.append_fields(simData,self.visitTimeCol,[999.]*len(simData))
+
         r = []
 
         #print(type(simData))
@@ -70,11 +74,18 @@ class CoaddStacker(BaseStacker):
         #print(df)
         #time_ref = time.time()
 
+        
         keygroup = [self.filterCol,self.nightCol]
-        keysums =  [self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol]
+        """
+        keysums =  [self.numExposuresCol,self.visitExposureTimeCol]
+        if self.visitTimeCol in simData.dtype.names:
+            keysums += [self.visitTimeCol]
         keymeans = [self.mjdCol, self.RaCol, self.DecCol, self.m5Col]
+        """
+        
+        
 
-        df.sort_values(by=[self.filterCol,self.nightCol], ascending=[True, True], inplace=True)
+        df.sort_values(by=keygroup, ascending=[True, True], inplace=True)
         #print('before',df[keygroup+keysums+keymeans])
         coadd_df = df.groupby(keygroup).agg({self.numExposuresCol: ['sum'],
                                              self.visitTimeCol: ['sum'],
