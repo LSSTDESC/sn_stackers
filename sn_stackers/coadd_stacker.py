@@ -16,9 +16,10 @@ class CoaddStacker(BaseStacker):
 
     colsAdded = ['sn_coadd']
 
-    def __init__(self, mjdCol='observationStartMJD',RaCol='fieldRA', DecCol='fieldDec', m5Col='fiveSigmaDepth', nightCol='night', filterCol='filter', numExposuresCol='numExposures', visitTimeCol='visitTime', visitExposureTimeCol='visitExposureTime', nproc=8):
+    def __init__(self, mjdCol='observationStartMJD',RaCol='fieldRA', DecCol='fieldDec', m5Col='fiveSigmaDepth', nightCol='night', filterCol='filter', numExposuresCol='numExposures', visitTimeCol='visitTime', visitExposureTimeCol='visitExposureTime', seeingaCol='seeingFwhmEff',seeingbCol='seeingFwhmGeom', nproc=8):
         self.colsReq = [mjdCol,RaCol, DecCol, m5Col, filterCol, nightCol,
-                        numExposuresCol, visitTimeCol, visitExposureTimeCol]
+                        numExposuresCol, visitTimeCol, visitExposureTimeCol,
+                        seeingaCol,seeingbCol]
         self.mjdCol = mjdCol
         self.RaCol = RaCol
         self.DecCol = DecCol
@@ -28,6 +29,9 @@ class CoaddStacker(BaseStacker):
         self.numExposuresCol = numExposuresCol
         self.visitTimeCol = visitTimeCol
         self.visitExposureTimeCol = visitExposureTimeCol
+        self.seeingaCol = seeingaCol
+        self.seeingbCol = seeingbCol
+
 
         self.units = ['int']
         self.nproc = 1
@@ -94,11 +98,13 @@ class CoaddStacker(BaseStacker):
                                              self.RaCol: ['mean'],
                                              self.DecCol: ['mean'],
                                              self.m5Col: ['mean'],
+                                             self.seeingaCol: ['mean'],
+                                             self.seeingbCol: ['mean'],
                                              'pixRa': ['mean'],
                                              'pixDec': ['mean'],
                                              'healpixID': ['mean'],
                                              'season': ['mean']}).reset_index()
-        coadd_df.columns = [self.filterCol,self.nightCol,self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol,self.mjdCol, self.RaCol, self.DecCol, self.m5Col,'pixRa','pixDec','healpixID','season'] 
+        coadd_df.columns = [self.filterCol,self.nightCol,self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol,self.mjdCol, self.RaCol, self.DecCol, self.m5Col,self.seeingaCol,self.seeingbCol,'pixRa','pixDec','healpixID','season'] 
 
         #groupa = df.groupby(keygroup)[keysums].sum()[keymeans].mean()
 
