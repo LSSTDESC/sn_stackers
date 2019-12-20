@@ -16,10 +16,10 @@ class CoaddStacker(BaseStacker):
 
     colsAdded = ['sn_coadd']
 
-    def __init__(self, mjdCol='observationStartMJD',RaCol='fieldRA', DecCol='fieldDec', m5Col='fiveSigmaDepth', nightCol='night', filterCol='filter', numExposuresCol='numExposures', visitTimeCol='visitTime', visitExposureTimeCol='visitExposureTime', seeingaCol='seeingFwhmEff',seeingbCol='seeingFwhmGeom', nproc=8):
+    def __init__(self, mjdCol='observationStartMJD',RaCol='fieldRA', DecCol='fieldDec', m5Col='fiveSigmaDepth', nightCol='night', filterCol='filter', numExposuresCol='numExposures', visitTimeCol='visitTime', visitExposureTimeCol='visitExposureTime', seeingaCol='seeingFwhmEff',seeingbCol='seeingFwhmGeom',airmassCol='airmass',skyCol='sky', moonCol='moonPhase',nproc=8):
         self.colsReq = [mjdCol,RaCol, DecCol, m5Col, filterCol, nightCol,
                         numExposuresCol, visitTimeCol, visitExposureTimeCol,
-                        seeingaCol,seeingbCol]
+                        seeingaCol,seeingbCol,airmassCol,skyCol,moonCol]
         self.mjdCol = mjdCol
         self.RaCol = RaCol
         self.DecCol = DecCol
@@ -31,6 +31,9 @@ class CoaddStacker(BaseStacker):
         self.visitExposureTimeCol = visitExposureTimeCol
         self.seeingaCol = seeingaCol
         self.seeingbCol = seeingbCol
+        self.airmassCol = airmassCol
+        self.skyCol = skyCol
+        self.moonCol = moonCol
 
 
         self.units = ['int']
@@ -103,8 +106,11 @@ class CoaddStacker(BaseStacker):
                                              'pixRa': ['mean'],
                                              'pixDec': ['mean'],
                                              'healpixID': ['mean'],
-                                             'season': ['mean']}).reset_index()
-        coadd_df.columns = [self.filterCol,self.nightCol,self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol,self.mjdCol, self.RaCol, self.DecCol, self.m5Col,self.seeingaCol,self.seeingbCol,'pixRa','pixDec','healpixID','season'] 
+                                             'season': ['mean'],
+                                             self.airmassCol: ['median'],
+                                             self.skyCol: ['median'],
+                                             self.moonCol: ['median']}).reset_index()
+        coadd_df.columns = [self.filterCol,self.nightCol,self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol,self.mjdCol, self.RaCol, self.DecCol, self.m5Col,self.seeingaCol,self.seeingbCol,'pixRa','pixDec','healpixID','season',self.airmassCol, self.skyCol, self.moonCol] 
 
         #groupa = df.groupby(keygroup)[keysums].sum()[keymeans].mean()
 
