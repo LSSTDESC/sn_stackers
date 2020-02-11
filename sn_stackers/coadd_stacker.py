@@ -114,13 +114,14 @@ class CoaddStacker(BaseStacker):
 
         #groupa = df.groupby(keygroup)[keysums].sum()[keymeans].mean()
 
-
-        coadd_df.loc[:,self.m5Col] += 1.25*np.log10(coadd_df[self.visitExposureTimeCol]/30.)  
+        
+        coadd_df.loc[:,self.m5Col] += 1.25*np.log10(coadd_df[self.visitTimeCol]/30.)
+       
         #print(coadd_df.sort_values(by=[self.nightCol]))
 
         coadd_df.sort_values(by=[self.filterCol,self.nightCol], ascending=[True, True], inplace=True)
         #print('coadd',coadd_df)
-    
+        #print('in stacker',coadd_df[[self.filterCol,self.m5Col,self.visitExposureTimeCol,self.visitTimeCol]])
         return coadd_df.to_records(index=False)
 
         
