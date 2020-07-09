@@ -16,10 +16,10 @@ class CoaddStacker(BaseStacker):
 
     colsAdded = ['sn_coadd']
 
-    def __init__(self, mjdCol='observationStartMJD',RACol='fieldRA', DecCol='fieldDec', m5Col='fiveSigmaDepth', nightCol='night', filterCol='filter', numExposuresCol='numExposures', visitTimeCol='visitTime', visitExposureTimeCol='visitExposureTime', seeingaCol='seeingFwhmEff',seeingbCol='seeingFwhmGeom',airmassCol='airmass',skyCol='sky', moonCol='moonPhase',nproc=8):
-        self.colsReq = [mjdCol,RACol, DecCol, m5Col, filterCol, nightCol,
+    def __init__(self, mjdCol='observationStartMJD', RACol='fieldRA', DecCol='fieldDec', m5Col='fiveSigmaDepth', nightCol='night', filterCol='filter', numExposuresCol='numExposures', visitTimeCol='visitTime', visitExposureTimeCol='visitExposureTime', seeingaCol='seeingFwhmEff', seeingbCol='seeingFwhmGeom', airmassCol='airmass', skyCol='sky', moonCol='moonPhase', nproc=8):
+        self.colsReq = [mjdCol, RACol, DecCol, m5Col, filterCol, nightCol,
                         numExposuresCol, visitTimeCol, visitExposureTimeCol,
-                        seeingaCol,seeingbCol,airmassCol,skyCol,moonCol]
+                        seeingaCol, seeingbCol, airmassCol, moonCol]
         self.mjdCol = mjdCol
         self.RACol = RACol
         self.DecCol = DecCol
@@ -34,7 +34,6 @@ class CoaddStacker(BaseStacker):
         self.airmassCol = airmassCol
         self.skyCol = skyCol
         self.moonCol = moonCol
-
 
         self.units = ['int']
         self.nproc = 1
@@ -62,38 +61,34 @@ class CoaddStacker(BaseStacker):
 
         """
         if 'note' in simData.dtype.names:
-            simData = rf.drop_fields(simData,'note')
+            simData = rf.drop_fields(simData, 'note')
         if cols_present:
             # Column already present in data; assume it is correct and does not need recalculating.
             return simData
         self.dtype = simData.dtype
-        
 
         if self.visitTimeCol not in simData.dtype.names:
-            simData = rf.append_fields(simData,self.visitTimeCol,[999.]*len(simData))
+            simData = rf.append_fields(
+                simData, self.visitTimeCol, [999.]*len(simData))
 
         r = []
 
-        #print(type(simData))
+        # print(type(simData))
         df = pd.DataFrame(np.copy(simData))
 
-        
-        #print(df)
+        # print(df)
         #time_ref = time.time()
 
-        
-        keygroup = [self.filterCol,self.nightCol]
+        keygroup = [self.filterCol, self.nightCol]
         """
         keysums =  [self.numExposuresCol,self.visitExposureTimeCol]
         if self.visitTimeCol in simData.dtype.names:
             keysums += [self.visitTimeCol]
         keymeans = [self.mjdCol, self.RACol, self.DecCol, self.m5Col]
         """
-        
-        
 
         df.sort_values(by=keygroup, ascending=[True, True], inplace=True)
-        #print('before',df[keygroup+keysums+keymeans])
+        # print('before',df[keygroup+keysums+keymeans])
         coadd_df = df.groupby(keygroup).agg({self.numExposuresCol: ['sum'],
                                              self.visitTimeCol: ['sum'],
                                              self.visitExposureTimeCol: ['sum'],
@@ -108,23 +103,24 @@ class CoaddStacker(BaseStacker):
                                              'healpixID': ['mean'],
                                              'season': ['mean'],
                                              self.airmassCol: ['median'],
-                                             self.skyCol: ['median'],
+                                             # self.skyCol: ['median'],
                                              self.moonCol: ['median']}).reset_index()
-        coadd_df.columns = [self.filterCol,self.nightCol,self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol,self.mjdCol, self.RACol, self.DecCol, self.m5Col,self.seeingaCol,self.seeingbCol,'pixRA','pixDec','healpixID','season',self.airmassCol, self.skyCol, self.moonCol] 
+        coadd_df.columns = [self.filterCol, self.nightCol, self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol, self.mjdCol, self.RACol,
+                            self.DecCol, self.m5Col, self.seeingaCol, self.seeingbCol, 'pixRA', 'pixDec', 'healpixID', 'season', self.airmassCol, self.moonCol]
 
         #groupa = df.groupby(keygroup)[keysums].sum()[keymeans].mean()
 
-        
-        coadd_df.loc[:,self.m5Col] += 1.25*np.log10(coadd_df[self.visitTimeCol]/30.)
-       
-        #print(coadd_df.sort_values(by=[self.nightCol]))
+        coadd_df.loc[:, self.m5Col] += 1.25 * \
+            np.log10(coadd_df[self.visitTimeCol]/30.)
 
-        coadd_df.sort_values(by=[self.filterCol,self.nightCol], ascending=[True, True], inplace=True)
-        #print('coadd',coadd_df)
+        # print(coadd_df.sort_values(by=[self.nightCol]))
+
+        coadd_df.sort_values(by=[self.filterCol, self.nightCol], ascending=[
+                             True, True], inplace=True)
+        # print('coadd',coadd_df)
         #print('in stacker',coadd_df[[self.filterCol,self.m5Col,self.visitExposureTimeCol,self.visitTimeCol]])
         return coadd_df.to_records(index=False)
 
-        
     def fill(self, tab):
         """
         Field values estimation per night
@@ -147,7 +143,7 @@ class CoaddStacker(BaseStacker):
         """
 
         r = []
-       
+
         for colname in self.dtype.names:
             #print('there lan',colname)
             if colname in ['note']:
