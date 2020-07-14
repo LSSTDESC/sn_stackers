@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='sn_stackers',
-    version='0.1',
+    version='v1.0.0',
     description='Stackers for supernovae',
     url='http://github.com/lsstdesc/sn_stackers',
     author='Philippe Gris',
