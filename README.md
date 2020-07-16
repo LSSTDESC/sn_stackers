@@ -3,7 +3,7 @@
 Stackers used for SN pipeline.
 
 
-``
+```
 This software was developed within the LSST DESC using LSST DESC resources, and so meets the criteria 
 given in, and is bound by, the LSST DESC Publication Policy for being a "DESC product". 
 We welcome requests to access code for non-DESC use; if you wish to use the code outside DESC 
