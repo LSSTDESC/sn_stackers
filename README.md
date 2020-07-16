@@ -20,7 +20,7 @@ please contact the developers.
 
 ## Feedback, License etc
 
-If you have comments, suggestions or questions, please [write us an issue](https://github.com/LSSTDESC/sn_/issues).
+If you have comments, suggestions or questions, please [write us an issue](https://github.com/LSSTDESC/sn_stackers/issues).
 
 This is open source software, available for re-use under the modified BSD license.
 
