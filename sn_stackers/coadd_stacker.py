@@ -5,6 +5,7 @@ import multiprocessing
 from astropy.table import Table, Column
 import pandas as pd
 import time
+import operator
 
 __all__ = ['CoaddStacker']
 
@@ -15,7 +16,7 @@ class CoaddStacker(BaseStacker):
     """
 
     colsAdded = ['sn_coadd']
-
+    """
     def __init__(self, mjdCol='observationStartMJD', RACol='fieldRA', DecCol='fieldDec', m5Col='fiveSigmaDepth', nightCol='night', filterCol='filter', numExposuresCol='numExposures', visitTimeCol='visitTime', visitExposureTimeCol='visitExposureTime', seeingaCol='seeingFwhmEff', seeingbCol='seeingFwhmGeom', airmassCol='airmass', skyCol='sky', moonCol='moonPhase', nproc=8):
         self.colsReq = [mjdCol, RACol, DecCol, m5Col, filterCol, nightCol,
                         numExposuresCol, visitTimeCol, visitExposureTimeCol,
@@ -37,6 +38,23 @@ class CoaddStacker(BaseStacker):
 
         self.units = ['int']
         self.nproc = 1
+    """
+
+    def __init__(self, col_sum=['numExposures', 'visitTime', 'visitExposureTime'],
+                 col_mean=['observationStartMJD', 'fieldRA', 'fieldDec',
+                           'fiveSigmaDepth', 'pixRA', 'pixDec', 'healpixID', 'season'],
+                 col_median=['airmass', 'sky', 'moonPhase',
+                             'seeingFwhmEff', 'seeingFwhmGeom'],
+                 col_group=['filter', 'night'],
+                 col_coadd=['fiveSigmaDepth', 'visitExposureTime']):
+
+        self.col_sum = col_sum
+        self.col_mean = col_mean
+        self.col_median = col_median
+        self.col_coadd = col_coadd
+        self.col_group = col_group
+        self.visitTimeCol = col_sum[1]
+        self.exptimeCol = col_coadd[1]
 
     def _run(self, simData, cols_present=False):
         """Main run method
@@ -77,9 +95,10 @@ class CoaddStacker(BaseStacker):
         df = pd.DataFrame(np.copy(simData))
 
         # print(df)
-        #time_ref = time.time()
+        # time_ref = time.time()
 
-        keygroup = [self.filterCol, self.nightCol]
+        #keygroup = [self.filterCol, self.nightCol]
+        keygroup = self.col_group
         """
         keysums =  [self.numExposuresCol,self.visitExposureTimeCol]
         if self.visitTimeCol in simData.dtype.names:
@@ -87,6 +106,25 @@ class CoaddStacker(BaseStacker):
         keymeans = [self.mjdCol, self.RACol, self.DecCol, self.m5Col]
         """
 
+        exptime_single = df[self.exptimeCol].median()
+        groups = df.groupby(keygroup)
+        listref = df.columns
+        tt = self.get_vals(listref, self.col_sum, groups, np.sum)
+        vv = self.get_vals(listref, self.col_mean, groups, np.mean)
+        if not vv.empty:
+            tt = tt.merge(vv, left_on=['night', 'filter'],
+                          right_on=['night', 'filter'])
+        vv = self.get_vals(listref, self.col_median, groups, np.median)
+        if not vv.empty:
+            tt = tt.merge(vv, left_on=['night', 'filter'],
+                          right_on=['night', 'filter'])
+
+        tt = tt.sort_values(by=['night'])
+        tt.loc[:, self.col_coadd[0]] += 1.25 * \
+            np.log10(tt[self.col_coadd[1]]/exptime_single)
+        return tt.to_records(index=False)
+
+    """
         df.sort_values(by=keygroup, ascending=[True, True], inplace=True)
         # print('before',df[keygroup+keysums+keymeans])
         coadd_df = df.groupby(keygroup).agg({self.numExposuresCol: ['sum'],
@@ -108,7 +146,7 @@ class CoaddStacker(BaseStacker):
         coadd_df.columns = [self.filterCol, self.nightCol, self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol, self.mjdCol, self.RACol,
                             self.DecCol, self.m5Col, self.seeingaCol, self.seeingbCol, 'pixRA', 'pixDec', 'healpixID', 'season', self.airmassCol, self.moonCol]
 
-        #groupa = df.groupby(keygroup)[keysums].sum()[keymeans].mean()
+        # groupa = df.groupby(keygroup)[keysums].sum()[keymeans].mean()
 
         coadd_df.loc[:, self.m5Col] += 1.25 * \
             np.log10(coadd_df[self.visitTimeCol]/30.)
@@ -118,8 +156,36 @@ class CoaddStacker(BaseStacker):
         coadd_df.sort_values(by=[self.filterCol, self.nightCol], ascending=[
                              True, True], inplace=True)
         # print('coadd',coadd_df)
-        #print('in stacker',coadd_df[[self.filterCol,self.m5Col,self.visitExposureTimeCol,self.visitTimeCol]])
+        # print('in stacker',coadd_df[[self.filterCol,self.m5Col,self.visitExposureTimeCol,self.visitTimeCol]])
         return coadd_df.to_records(index=False)
+    """
+
+    def get_vals(self, listref, cols, group, op):
+        """
+        Method to estimate a set of value using op
+
+        Parameters
+        --------------
+        listref: list(str)
+          list of columns of the group
+        cols: list(str)
+          list of columns to estimate values (op)
+        group: pandas group
+          data to process
+        op: operator
+         operator to apply
+
+        Returns
+        ----------
+          pandas df with oped values
+
+        """
+        col_df = list(set(listref).intersection(cols))
+        res = pd.DataFrame()
+        if col_df:
+            res = group[col_df].apply(lambda x: op(x)).reset_index()
+
+        return res
 
     def fill(self, tab):
         """
@@ -145,7 +211,7 @@ class CoaddStacker(BaseStacker):
         r = []
 
         for colname in self.dtype.names:
-            #print('there lan',colname)
+            # print('there lan',colname)
             if colname in ['note']:
                 r.append(np.unique(tab[colname])[0])
                 continue
@@ -161,7 +227,7 @@ class CoaddStacker(BaseStacker):
             if colname == self.filterCol:
                 r.append(np.unique(tab[self.filterCol])[0])
 
-        #print('done here',r)
+        # print('done here',r)
         return r
 
     def m5_coadd(self, m5):
