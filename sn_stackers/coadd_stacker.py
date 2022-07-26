@@ -1,4 +1,3 @@
-from lsst.sims.maf.stackers import BaseStacker
 import numpy as np
 import numpy.lib.recfunctions as rf
 import multiprocessing
@@ -10,34 +9,10 @@ import operator
 __all__ = ['CoaddStacker']
 
 
-class CoaddStacker(BaseStacker):
+# class CoaddStacker(BaseStacker):
+class CoaddStacker:
     """
     Class to coadd observations per night
-    """
-
-    colsAdded = ['sn_coadd']
-    """
-    def __init__(self, mjdCol='observationStartMJD', RACol='fieldRA', DecCol='fieldDec', m5Col='fiveSigmaDepth', nightCol='night', filterCol='filter', numExposuresCol='numExposures', visitTimeCol='visitTime', visitExposureTimeCol='visitExposureTime', seeingaCol='seeingFwhmEff', seeingbCol='seeingFwhmGeom', airmassCol='airmass', skyCol='sky', moonCol='moonPhase', nproc=8):
-        self.colsReq = [mjdCol, RACol, DecCol, m5Col, filterCol, nightCol,
-                        numExposuresCol, visitTimeCol, visitExposureTimeCol,
-                        seeingaCol, seeingbCol, airmassCol, moonCol]
-        self.mjdCol = mjdCol
-        self.RACol = RACol
-        self.DecCol = DecCol
-        self.nightCol = nightCol
-        self.filterCol = filterCol
-        self.m5Col = m5Col
-        self.numExposuresCol = numExposuresCol
-        self.visitTimeCol = visitTimeCol
-        self.visitExposureTimeCol = visitExposureTimeCol
-        self.seeingaCol = seeingaCol
-        self.seeingbCol = seeingbCol
-        self.airmassCol = airmassCol
-        self.skyCol = skyCol
-        self.moonCol = moonCol
-
-        self.units = ['int']
-        self.nproc = 1
     """
 
     def __init__(self, col_sum=['numExposures', 'visitTime', 'visitExposureTime'],
@@ -123,42 +98,6 @@ class CoaddStacker(BaseStacker):
         tt.loc[:, self.col_coadd[0]] += 1.25 * \
             np.log10(tt[self.col_coadd[1]]/exptime_single)
         return tt.to_records(index=False)
-
-    """
-        df.sort_values(by=keygroup, ascending=[True, True], inplace=True)
-        # print('before',df[keygroup+keysums+keymeans])
-        coadd_df = df.groupby(keygroup).agg({self.numExposuresCol: ['sum'],
-                                             self.visitTimeCol: ['sum'],
-                                             self.visitExposureTimeCol: ['sum'],
-                                             self.mjdCol: ['mean'],
-                                             self.RACol: ['mean'],
-                                             self.DecCol: ['mean'],
-                                             self.m5Col: ['mean'],
-                                             self.seeingaCol: ['mean'],
-                                             self.seeingbCol: ['mean'],
-                                             'pixRA': ['mean'],
-                                             'pixDec': ['mean'],
-                                             'healpixID': ['mean'],
-                                             'season': ['mean'],
-                                             self.airmassCol: ['median'],
-                                             # self.skyCol: ['median'],
-                                             self.moonCol: ['median']}).reset_index()
-        coadd_df.columns = [self.filterCol, self.nightCol, self.numExposuresCol, self.visitTimeCol, self.visitExposureTimeCol, self.mjdCol, self.RACol,
-                            self.DecCol, self.m5Col, self.seeingaCol, self.seeingbCol, 'pixRA', 'pixDec', 'healpixID', 'season', self.airmassCol, self.moonCol]
-
-        # groupa = df.groupby(keygroup)[keysums].sum()[keymeans].mean()
-
-        coadd_df.loc[:, self.m5Col] += 1.25 * \
-            np.log10(coadd_df[self.visitTimeCol]/30.)
-
-        # print(coadd_df.sort_values(by=[self.nightCol]))
-
-        coadd_df.sort_values(by=[self.filterCol, self.nightCol], ascending=[
-                             True, True], inplace=True)
-        # print('coadd',coadd_df)
-        # print('in stacker',coadd_df[[self.filterCol,self.m5Col,self.visitExposureTimeCol,self.visitTimeCol]])
-        return coadd_df.to_records(index=False)
-    """
 
     def get_vals(self, listref, cols, group, op):
         """
